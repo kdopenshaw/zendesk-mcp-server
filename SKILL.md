@@ -1,11 +1,20 @@
 ---
 name: zendesk-help
-description: Guide for efficiently searching and managing Zendesk tickets
+description: Use when working with Zendesk tickets, searching tickets, or managing customer support. Provides guidance on search_tickets, get_tickets, and get_ticket tools.
 ---
 
 # Zendesk Help
 
 Guide for efficiently searching and managing Zendesk tickets.
+
+## When to Use This Skill
+
+Invoke this skill when the user:
+- Mentions "Zendesk", "ticket", or "tickets"
+- Asks to find, search, or look up support tickets
+- Wants to check on a customer issue or transfer
+- Needs to find tickets by transfer ID, customer email, or status
+- Asks about ticket workflows or how to search tickets
 
 ## Available Tools
 
