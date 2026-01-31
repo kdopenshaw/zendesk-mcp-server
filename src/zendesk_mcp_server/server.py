@@ -244,6 +244,72 @@ async def handle_list_tools() -> list[types.Tool]:
                 },
                 "required": ["ticket_id"]
             }
+        ),
+        types.Tool(
+            name="search_tickets",
+            description="Search Zendesk tickets using query syntax. Supports text search, filters, custom fields, and date ranges.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Text to search in subject/description"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Filter by status: new, open, pending, hold, solved, closed"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "description": "Filter by priority: low, normal, high, urgent"
+                    },
+                    "assignee": {
+                        "type": "string",
+                        "description": "Filter by assignee email"
+                    },
+                    "requester": {
+                        "type": "string",
+                        "description": "Filter by requester email"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Filter by tags"
+                    },
+                    "custom_field_id": {
+                        "type": "integer",
+                        "description": "Custom field ID to search"
+                    },
+                    "custom_field_value": {
+                        "type": "string",
+                        "description": "Value to match in custom field"
+                    },
+                    "created_after": {
+                        "type": "string",
+                        "description": "ISO date - tickets created after this date"
+                    },
+                    "created_before": {
+                        "type": "string",
+                        "description": "ISO date - tickets created before this date"
+                    },
+                    "sort_by": {
+                        "type": "string",
+                        "description": "Field to sort by (created_at, updated_at, priority, status)",
+                        "default": "updated_at"
+                    },
+                    "sort_order": {
+                        "type": "string",
+                        "description": "Sort order (asc or desc)",
+                        "default": "desc"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max results (up to 100)",
+                        "default": 25
+                    }
+                },
+                "required": []
+            }
         )
     ]
 
@@ -334,6 +400,27 @@ async def handle_call_tool(
             return [types.TextContent(
                 type="text",
                 text=json.dumps({"message": "Ticket updated successfully", "ticket": updated}, indent=2)
+            )]
+
+        elif name == "search_tickets":
+            results = zendesk_client.search_tickets(
+                query=arguments.get("query") if arguments else None,
+                status=arguments.get("status") if arguments else None,
+                priority=arguments.get("priority") if arguments else None,
+                assignee=arguments.get("assignee") if arguments else None,
+                requester=arguments.get("requester") if arguments else None,
+                tags=arguments.get("tags") if arguments else None,
+                custom_field_id=arguments.get("custom_field_id") if arguments else None,
+                custom_field_value=arguments.get("custom_field_value") if arguments else None,
+                created_after=arguments.get("created_after") if arguments else None,
+                created_before=arguments.get("created_before") if arguments else None,
+                sort_by=arguments.get("sort_by", "updated_at") if arguments else "updated_at",
+                sort_order=arguments.get("sort_order", "desc") if arguments else "desc",
+                limit=arguments.get("limit", 25) if arguments else 25,
+            )
+            return [types.TextContent(
+                type="text",
+                text=json.dumps(results, indent=2)
             )]
 
         else:

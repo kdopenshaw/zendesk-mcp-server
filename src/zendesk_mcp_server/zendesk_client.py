@@ -244,6 +244,140 @@ class ZendeskClient:
         except Exception as e:
             raise Exception(f"Failed to create ticket: {str(e)}")
 
+    def search_tickets(
+        self,
+        query: str | None = None,
+        status: str | None = None,
+        priority: str | None = None,
+        assignee: str | None = None,
+        requester: str | None = None,
+        tags: List[str] | None = None,
+        custom_field_id: int | None = None,
+        custom_field_value: str | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        sort_by: str = "updated_at",
+        sort_order: str = "desc",
+        limit: int = 25,
+    ) -> Dict[str, Any]:
+        """
+        Search Zendesk tickets using query syntax.
+
+        Args:
+            query: Text to search in subject/description
+            status: Filter by status (new, open, pending, hold, solved, closed)
+            priority: Filter by priority (low, normal, high, urgent)
+            assignee: Filter by assignee email
+            requester: Filter by requester email
+            tags: Filter by tags
+            custom_field_id: Custom field ID to search
+            custom_field_value: Value to match in custom field
+            created_after: ISO date - tickets created after
+            created_before: ISO date - tickets created before
+            sort_by: Field to sort by (created_at, updated_at, priority, status)
+            sort_order: Sort order (asc or desc)
+            limit: Max results (up to 100)
+
+        Returns:
+            Dict containing tickets and search metadata
+        """
+        try:
+            # Cap limit at 100
+            limit = min(limit, 100)
+
+            # Build query parts
+            query_parts = []
+
+            # Always search for tickets (not users, organizations, etc.)
+            query_parts.append("type:ticket")
+
+            # Text search (searches subject and description)
+            if query:
+                query_parts.append(f'"{query}"')
+
+            # Standard filters
+            if status:
+                query_parts.append(f"status:{status}")
+            if priority:
+                query_parts.append(f"priority:{priority}")
+            if assignee:
+                query_parts.append(f"assignee:{assignee}")
+            if requester:
+                query_parts.append(f"requester:{requester}")
+
+            # Tags
+            if tags:
+                for tag in tags:
+                    query_parts.append(f"tags:{tag}")
+
+            # Custom field search
+            if custom_field_id and custom_field_value:
+                query_parts.append(f"custom_field_{custom_field_id}:{custom_field_value}")
+
+            # Date filters
+            if created_after:
+                query_parts.append(f"created>{created_after}")
+            if created_before:
+                query_parts.append(f"created<{created_before}")
+
+            # Build the full query string
+            full_query = " ".join(query_parts)
+
+            # Determine sort parameter for API
+            sort_param = sort_by
+            if sort_order == "desc":
+                sort_param = f"-{sort_by}" if not sort_by.startswith("-") else sort_by
+
+            # URL encode the query and build URL
+            params = {
+                "query": full_query,
+                "sort_by": sort_param,
+                "per_page": str(limit),
+            }
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.base_url}/search.json?{query_string}"
+
+            # Create request with auth header
+            req = urllib.request.Request(url)
+            req.add_header("Authorization", self.auth_header)
+            req.add_header("Content-Type", "application/json")
+
+            # Make the API request
+            with urllib.request.urlopen(req) as response:
+                data = json.loads(response.read().decode())
+
+            results = data.get("results", [])
+
+            # Process tickets to return only essential fields
+            ticket_list = []
+            for ticket in results:
+                ticket_list.append({
+                    "id": ticket.get("id"),
+                    "subject": ticket.get("subject"),
+                    "status": ticket.get("status"),
+                    "priority": ticket.get("priority"),
+                    "description": ticket.get("description"),
+                    "created_at": ticket.get("created_at"),
+                    "updated_at": ticket.get("updated_at"),
+                    "requester_id": ticket.get("requester_id"),
+                    "assignee_id": ticket.get("assignee_id"),
+                    "tags": ticket.get("tags", []),
+                })
+
+            return {
+                "tickets": ticket_list,
+                "query": full_query,
+                "count": len(ticket_list),
+                "total_count": data.get("count", len(ticket_list)),
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+            }
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode() if e.fp else "No response body"
+            raise Exception(f"Failed to search tickets: HTTP {e.code} - {e.reason}. {error_body}")
+        except Exception as e:
+            raise Exception(f"Failed to search tickets: {str(e)}")
+
     def update_ticket(self, ticket_id: int, **fields: Any) -> Dict[str, Any]:
         """
         Update a Zendesk ticket with provided fields using Zenpy.

@@ -1,23 +1,56 @@
 # Zendesk MCP Server
 
-![ci](https://github.com/reminia/zendesk-mcp-server/actions/workflows/ci.yml/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A Model Context Protocol server for Zendesk.
 
+> **Note:** This is a fork of [reminia/zendesk-mcp-server](https://github.com/reminia/zendesk-mcp-server) with the following additions:
+> - `search_tickets` tool for searching tickets by text, filters, custom fields, and date ranges
+
 This server provides a comprehensive integration with Zendesk. It offers:
 
 - Tools for retrieving and managing Zendesk tickets and comments
+- **Ticket search** with support for custom fields, filters, and date ranges
 - Specialized prompts for ticket analysis and response drafting
 - Full access to the Zendesk Help Center articles as knowledge base
 
 ![demo](https://res.cloudinary.com/leecy-me/image/upload/v1736410626/open/zendesk_yunczu.gif)
 
+## Prerequisites
+
+- **[uv](https://docs.astral.sh/uv/)** - Python package manager (required)
+
+  Install uv if you don't have it:
+  ```bash
+  # macOS/Linux
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  # Or with Homebrew
+  brew install uv
+  ```
+
 ## Setup
 
-- build: `uv venv && uv pip install -e .` or `uv build` in short.
-- setup zendesk credentials in `.env` file, refer to [.env.example](.env.example).
-- configure in Claude desktop:
+1. **Clone the repository** and note the full path (you'll need it for configuration):
+   ```bash
+   git clone <repo-url> /path/to/zendesk-mcp-server
+   ```
+
+2. **Build the project:**
+   ```bash
+   cd /path/to/zendesk-mcp-server
+   uv venv && uv pip install -e .
+   ```
+
+3. **Configure Zendesk credentials** in a `.env` file:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Zendesk subdomain, email, and API key
+   ```
+
+4. **Configure in Claude Desktop** (or Claude Code):
+
+   Add to your MCP settings, replacing `/path/to/zendesk-mcp-server` with the **absolute path** to where you cloned the repo:
 
 ```json
 {
@@ -34,6 +67,11 @@ This server provides a comprehensive integration with Zendesk. It offers:
   }
 }
 ```
+
+**Example paths:**
+- macOS: `/Users/yourname/dev/zendesk-mcp-server`
+- Linux: `/home/yourname/projects/zendesk-mcp-server`
+- Windows: `C:\\Users\\yourname\\dev\\zendesk-mcp-server`
 
 ### Docker
 
@@ -160,3 +198,32 @@ Update fields on an existing Zendesk ticket (e.g., status, priority, assignee)
   - `tags` (array[string], optional)
   - `custom_fields` (array[object], optional)
   - `due_at` (string, optional): ISO8601 datetime
+
+### search_tickets
+
+Search Zendesk tickets using query syntax with support for text search, filters, custom fields, and date ranges.
+
+- Input:
+  - `query` (string, optional): Text to search in subject/description
+  - `status` (string, optional): Filter by status - `new`, `open`, `pending`, `hold`, `solved`, `closed`
+  - `priority` (string, optional): Filter by priority - `low`, `normal`, `high`, `urgent`
+  - `assignee` (string, optional): Filter by assignee email
+  - `requester` (string, optional): Filter by requester email
+  - `tags` (array[string], optional): Filter by tags
+  - `custom_field_id` (integer, optional): Custom field ID to search
+  - `custom_field_value` (string, optional): Value to match in custom field
+  - `created_after` (string, optional): ISO date - tickets created after this date
+  - `created_before` (string, optional): ISO date - tickets created before this date
+  - `sort_by` (string, optional): Field to sort by - `created_at`, `updated_at`, `priority`, `status` (defaults to `updated_at`)
+  - `sort_order` (string, optional): Sort order - `asc` or `desc` (defaults to `desc`)
+  - `limit` (integer, optional): Max results, up to 100 (defaults to 25)
+
+- Output: Returns matching tickets with id, subject, status, priority, description, timestamps, assignee info, and tags, along with search metadata
+
+- Example - Search by custom field (e.g., transfer ID):
+  ```json
+  {
+    "custom_field_id": 23301179390491,
+    "custom_field_value": "txn_abc123"
+  }
+  ```
