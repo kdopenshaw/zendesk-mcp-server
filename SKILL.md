@@ -1,95 +1,87 @@
 ---
-name: zendesk-help
-description: Use when working with Zendesk tickets, searching tickets, or managing customer support. Provides guidance on search_tickets, get_tickets, and get_ticket tools.
+name: using-zendesk-mcp
+description: Manages Zendesk tickets via MCP tools for searching, viewing, creating, updating tickets and comments. Use when working with Zendesk, support tickets, customer issues, or transfer lookups.
 ---
 
-# Zendesk Help
+# Using Zendesk MCP
 
-Guide for efficiently searching and managing Zendesk tickets.
+## Tools
 
-## When to Use This Skill
+### Search & Retrieve
 
-Invoke this skill when the user:
-- Mentions "Zendesk", "ticket", or "tickets"
-- Asks to find, search, or look up support tickets
-- Wants to check on a customer issue or transfer
-- Needs to find tickets by transfer ID, customer email, or status
-- Asks about ticket workflows or how to search tickets
-
-## Available Tools
-
-### `search_tickets` - Find tickets by criteria
-Use this when you need to find tickets matching specific criteria:
-- Text search in subject/description
-- Filter by status, priority, assignee, requester
-- Search by custom fields (e.g., transfer ID)
-- Date range filters
-
-### `get_tickets` - List recent tickets
-Use this to browse recent tickets with pagination. Good for:
-- Seeing what's new
-- Getting an overview of recent activity
-
-### `get_ticket` - Fetch specific ticket
-Use this when you have a ticket ID and need full details.
-
-## Search Examples
-
-### Find tickets by transfer ID
-The transfer ID custom field is `23301179390491`:
+**`Zendesk:search_tickets`** - Find tickets by criteria (text, status, priority, tags, custom fields, dates)
 ```
-search_tickets(custom_field_id=23301179390491, custom_field_value="txn_abc123")
+Zendesk:search_tickets(query="wire transfer", status="open", limit=10)
+Zendesk:search_tickets(custom_field_id=23301179390491, custom_field_value="txn_abc123")
+Zendesk:search_tickets(requester="customer@example.com", status="pending")
 ```
 
-### Find open tickets for a customer
+**`Zendesk:get_ticket`** - Fetch a single ticket by ID
 ```
-search_tickets(requester="customer@example.com", status="open")
-```
-
-### Find unassigned urgent tickets
-```
-search_tickets(status="new", priority="urgent")
+Zendesk:get_ticket(ticket_id=12345)
 ```
 
-### Text search with filters
+**`Zendesk:get_tickets`** - List recent tickets with pagination
 ```
-search_tickets(query="payment failed", status="open")
-```
-
-### Find tickets created in a date range
-```
-search_tickets(created_after="2024-01-01", created_before="2024-01-31")
+Zendesk:get_tickets(page=1, per_page=25, sort_by="updated_at", sort_order="desc")
 ```
 
-### Combine multiple filters
+**`Zendesk:get_ticket_comments`** - Get conversation history for a ticket
 ```
-search_tickets(
-    query="wire transfer",
-    status="pending",
-    tags=["escalated"],
-    sort_by="created_at",
-    sort_order="desc"
-)
+Zendesk:get_ticket_comments(ticket_id=12345)
 ```
 
-## Common Workflows
+### Create & Modify
 
-### Finding tickets related to a transfer
-1. Use `search_tickets` with the transfer ID custom field
-2. If no results, try text search with the transfer ID as query
-3. Use `get_ticket` to fetch full details of matching tickets
+**`Zendesk:create_ticket`** - Create a new ticket
+```
+Zendesk:create_ticket(subject="Issue title", description="Details", priority="high")
+```
 
-### Finding a customer's tickets
-1. Use `search_tickets` with `requester` email
-2. Optionally filter by `status` to see only active tickets
+**`Zendesk:create_ticket_comment`** - Add a comment to a ticket
+```
+Zendesk:create_ticket_comment(ticket_id=12345, comment="Response text", public=true)
+```
 
-### Finding unassigned work
-1. Search for tickets with no assignee: `search_tickets(status="new")`
-2. Or filter by specific queue using tags
+**`Zendesk:update_ticket`** - Update ticket fields (status, priority, assignee, etc.)
+```
+Zendesk:update_ticket(ticket_id=12345, status="pending", priority="high")
+```
 
-## Tips
+## Prompts
 
-- Use `limit` parameter to control result count (max 100)
-- Results are sorted by `updated_at` descending by default
-- Combine multiple filters to narrow results
-- For exact phrase matching, the query text is automatically quoted
+**`analyze-ticket`** - Analyzes a ticket and provides summary, status, timeline, and key interaction points.
+
+**`draft-ticket-response`** - Drafts a professional response using ticket context and knowledge base.
+
+## Resources
+
+**`zendesk://knowledge-base`** - Help Center articles organized by section. Useful for drafting informed responses.
+
+## Workflows
+
+### Investigate a customer issue
+1. `Zendesk:search_tickets` with requester email or transfer ID
+2. `Zendesk:get_ticket` for full details
+3. `Zendesk:get_ticket_comments` to see conversation history
+
+### Respond to a ticket
+1. `Zendesk:get_ticket` and `Zendesk:get_ticket_comments`
+2. Read `zendesk://knowledge-base` if needed
+3. Use `draft-ticket-response` prompt or draft manually
+4. `Zendesk:create_ticket_comment` to post response
+
+### Triage unassigned tickets
+1. `Zendesk:search_tickets(status="new")` or `Zendesk:get_tickets`
+2. `Zendesk:update_ticket` to set assignee, priority, or status
+
+## Reference
+
+### Custom Fields
+- Transfer ID: `custom_field_id=23301179390491`
+
+### Status Values
+`new` | `open` | `pending` | `hold` | `solved` | `closed`
+
+### Priority Values
+`low` | `normal` | `high` | `urgent`
