@@ -293,7 +293,7 @@ class ZendeskClient:
 
             # Text search (searches subject and description)
             if query:
-                query_parts.append(f'"{query}"')
+                query_parts.append(query)
 
             # Standard filters
             if status:
